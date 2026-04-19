@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusArena — Esports Tournament System</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#050811;--bg2:#090e1a;--bg3:#0d1424;--bg4:#111a2e;
+--cyan:#00f5ff;--purple:#a855f7;--blue:#3b82f6;--pink:#ec4899;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+--cyan-dim:rgba(0,245,255,0.12);--purple-dim:rgba(168,85,247,0.15);
+--text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
+--border:rgba(0,245,255,0.12);--border2:rgba(168,85,247,0.2);
+--font-display:'Exo 2',sans-serif;--font-body:'Rajdhani',sans-serif;--font-mono:'JetBrains Mono',monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100%;overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--purple);border-radius:2px}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.main{margin-left:220px;flex:1;min-height:100vh}
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:50}
+.content{padding:24px}
+.logo{padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#000;font-family:var(--font-display)}
+.logo-text{font-family:var(--font-display);font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:9px;color:var(--text3);font-family:var(--font-mono);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-section{padding:8px 16px 4px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);font-family:var(--font-mono)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all 0.2s;border-left:2px solid transparent;font-size:13px;font-weight:500;color:var(--text2)}
+.nav-item:hover,.nav-item.active{color:var(--cyan);background:var(--cyan-dim);border-left-color:var(--cyan)}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;font-family:var(--font-mono)}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);font-family:var(--font-mono)}
+.status-dot{width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;margin-right:4px;box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.topbar-title{font-family:var(--font-display);font-size:16px;font-weight:600;flex:1}
+.api-status{display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);padding:5px 12px;border-radius:5px;border:1px solid var(--border)}
+.api-status.online{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.08)}
+.api-status.offline{color:var(--red);border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08)}
+.topbar-btn{background:var(--cyan-dim);border:1px solid var(--border);color:var(--cyan);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:var(--font-display);font-weight:600;transition:all 0.2s}
+.topbar-btn:hover{background:rgba(0,245,255,0.25);box-shadow:0 0 20px rgba(0,245,255,0.3)}
+.page{display:none}.page.active{display:block}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.card-title{font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-title{font-family:var(--font-display);font-size:20px;font-weight:700}
+.section-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+.section-badge{background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--font-mono)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;position:relative;overflow:hidden;transition:all 0.3s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.cyan::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.stat-card.purple::before{background:linear-gradient(90deg,transparent,var(--purple),transparent)}
+.stat-card.green::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.stat-card.yellow::before{background:linear-gradient(90deg,transparent,var(--yellow),transparent)}
+.stat-card:hover{border-color:rgba(0,245,255,0.3);transform:translateY(-2px)}
+.stat-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.stat-value{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1}
+.stat-value.cyan{color:var(--cyan)}.stat-value.purple{color:var(--purple)}.stat-value.green{color:var(--green)}.stat-value.yellow{color:var(--yellow)}
+.stat-change{font-size:10px;margin-top:6px;font-family:var(--font-mono);color:var(--green)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{padding:8px 12px;text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);font-family:var(--font-mono);border-bottom:1px solid var(--border);font-weight:500}
+.data-table td{padding:10px 12px;border-bottom:1px solid rgba(0,245,255,0.05);color:var(--text2);transition:background 0.15s}
+.data-table tr:hover td{background:var(--cyan-dim)}
+.data-table tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--font-mono);font-weight:500}
+.badge-live{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ef4444}
+.badge-upcoming{background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);color:#3b82f6}
+.badge-completed{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#10b981}
+.loading{display:flex;align-items:center;gap:8px;color:var(--text3);font-family:var(--font-mono);font-size:12px;padding:24px}
+.loading-dot{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:pulse 1s infinite}
+.loading-dot:nth-child(2){animation-delay:0.2s}.loading-dot:nth-child(3){animation-delay:0.4s}
+.error-msg{color:var(--red);font-family:var(--font-mono);font-size:12px;padding:16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px}
+.hero{min-height:calc(100vh - 56px);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:60px 40px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 120% 80% at 50% 60%,rgba(0,245,255,0.04) 0%,transparent 70%),radial-gradient(ellipse 80% 60% at 20% 20%,rgba(168,85,247,0.06) 0%,transparent 60%);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;mask-image:radial-gradient(ellipse at 50% 50%,black 40%,transparent 100%)}
+.hero-title{font-family:var(--font-display);font-size:clamp(48px,8vw,88px);font-weight:900;line-height:1;margin-bottom:16px;animation:fadeUp 0.8s 0.3s both}
+.hero-title .t1{display:block;color:var(--text)}
+.hero-title .t2{display:block;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-title .t3{display:block;color:var(--text);opacity:0.6}
+.hero-sub{font-size:16px;color:var(--text2);max-width:520px;line-height:1.6;margin-bottom:36px;animation:fadeUp 0.8s 0.5s both;font-weight:300}
+.hero-cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:60px;animation:fadeUp 0.8s 0.7s both}
+.btn-primary{padding:14px 32px;background:var(--cyan);color:#000;border:none;border-radius:6px;font-family:var(--font-display);font-size:15px;font-weight:700;cursor:pointer;transition:all 0.25s;letter-spacing:1px}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 30px rgba(0,245,255,0.5)}
+.btn-secondary{padding:14px 32px;background:transparent;color:var(--text);border:1px solid var(--border2);border-radius:6px;font-family:var(--font-display);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.25s}
+.btn-secondary:hover{border-color:var(--purple);color:var(--purple);box-shadow:0 0 20px rgba(168,85,247,0.3)}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;width:100%;max-width:900px;animation:fadeUp 0.8s 0.9s both}
+.feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;text-align:left;transition:all 0.3s}
+.feature-card:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,245,255,0.08)}
+.feature-icon{font-size:22px;margin-bottom:10px}
+.feature-title{font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:6px}
+.feature-desc{font-size:12px;color:var(--text3);line-height:1.5}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.lb-top3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+.lb-podium{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;text-align:center;transition:all 0.3s}
+.lb-podium:hover{transform:translateY(-3px)}
+.lb-podium.first{border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.05)}
+.lb-podium.second{border-color:rgba(148,163,184,0.4)}
+.lb-podium.third{border-color:rgba(205,127,50,0.4)}
+.lb-avatar{width:48px;height:48px;border-radius:50%;margin:8px auto;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:700;color:#000}
+.lb-pname{font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:2px}
+.lb-team{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:8px}
+.profile-header{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:24px;display:flex;align-items:center;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+.avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:28px;font-weight:700;color:#000;flex-shrink:0}
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-select,.filter-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:5px;font-size:12px;font-family:var(--font-mono);outline:none;cursor:pointer}
+.filter-select:focus,.filter-input:focus{border-color:var(--cyan)}
+.t-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.t-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:all 0.3s;cursor:pointer}
+.t-card:hover{border-color:var(--cyan);transform:translateY(-2px);box-shadow:0 0 20px rgba(0,245,255,0.1)}
+.t-card-banner{height:70px;display:flex;align-items:center;padding:0 16px;background:linear-gradient(135deg,rgba(0,245,255,0.08),rgba(168,85,247,0.08))}
+.t-card-body{padding:16px}
+.t-card-name{font-family:var(--font-display);font-size:14px;font-weight:700;margin-bottom:4px}
+.t-card-meta{font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:12px}
+.t-card-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-top:1px solid var(--border);padding-top:12px;text-align:center}
+.t-stat-val{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--cyan)}
+.t-stat-lbl{font-size:9px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase}
+.pipeline{display:flex;align-items:center;gap:0;overflow-x:auto;padding:24px 0}
+.pipe-node{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:20px 14px;text-align:center;min-width:130px;flex:1;transition:all 0.3s;cursor:pointer}
+.pipe-node:hover,.pipe-node.active{border-color:var(--cyan);background:var(--cyan-dim)}
+.pipe-arrow{padding:0 8px;color:var(--text3);font-size:20px;flex-shrink:0}
+.pipe-icon{font-size:22px;margin-bottom:8px}
+.pipe-title{font-family:var(--font-display);font-size:12px;font-weight:600;margin-bottom:4px}
+.pipe-desc{font-size:10px;color:var(--text3);font-family:var(--font-mono);line-height:1.4}
+.flow-line{height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);position:relative;overflow:hidden;margin:8px 0}
+.flow-particle{position:absolute;top:-3px;width:8px;height:8px;background:var(--cyan);border-radius:50%;box-shadow:0 0 8px var(--cyan);animation:flow 2s linear infinite}
+@keyframes flow{from{left:-10px}to{left:100%}}
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.form-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase}
+.form-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:5px;font-size:13px;font-family:var(--font-mono);outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--cyan)}
+.form-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:5px;font-size:13px;font-family:var(--font-mono);outline:none;cursor:pointer}
+.btn-cyan{background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);padding:10px 20px;border-radius:5px;cursor:pointer;font-family:var(--font-display);font-size:13px;font-weight:600;transition:all 0.2s;width:100%;margin-top:8px}
+.btn-cyan:hover{background:rgba(0,245,255,0.25)}
+.log-entry{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid rgba(0,245,255,0.05);font-size:11px;font-family:var(--font-mono)}
+.log-ts{color:var(--text3);white-space:nowrap;font-size:10px}
+.log-type{padding:1px 6px;border-radius:3px;font-size:9px;flex-shrink:0}
+.log-insert{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
+.log-etl{background:rgba(168,85,247,0.15);color:var(--purple);border:1px solid rgba(168,85,247,0.3)}
+.log-api{background:rgba(59,130,246,0.15);color:var(--blue);border:1px solid rgba(59,130,246,0.3)}
+.rank-1{color:var(--yellow);font-weight:700;font-family:var(--font-mono)}
+.rank-2{color:#94a3b8;font-weight:700;font-family:var(--font-mono)}
+.rank-3{color:#cd7f32;font-weight:700;font-family:var(--font-mono)}
+.rank-n{color:var(--text3);font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+<!-- TICKER INJECTED -->
+<style>
+.ticker-wrap{background:#0a0f1e;border-bottom:1px solid rgba(0,245,255,0.2);overflow:hidden;height:36px;display:flex;align-items:center;position:fixed;top:0;left:0;right:0;z-index:9999;width:100%}
+.ticker-label{background:linear-gradient(135deg,#00f5ff,#a855f7);color:#000;font-family:"Exo 2",sans-serif;font-size:10px;font-weight:800;padding:0 12px;height:100%;display:flex;align-items:center;white-space:nowrap;letter-spacing:1px;flex-shrink:0}
+.ticker-label span{display:inline-block;width:6px;height:6px;background:#000;border-radius:50%;margin-right:6px;animation:tblink 1s infinite}
+@keyframes tblink{0%,100%{opacity:1}50%{opacity:0}}
+.ticker-track{display:flex;animation:tickerAnim 50s linear infinite;align-items:center;height:100%;white-space:nowrap}
+.ticker-track:hover{animation-play-state:paused}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;padding:0 24px;border-right:1px solid rgba(0,245,255,0.1);height:100%}
+.t-teams{font-family:"Exo 2",sans-serif;font-size:12px;font-weight:600;color:#e2e8f0}
+.t-score{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:#00f5ff;min-width:36px;text-align:center}
+.t-score.tlive{color:#ef4444;animation:sflash 1.5s infinite}
+@keyframes sflash{0%,100%{opacity:1}50%{opacity:0.5}}
+.t-map{font-size:9px;color:#475569;font-family:"JetBrains Mono",monospace;background:#111a2e;padding:1px 5px;border-radius:3px}
+.t-st{font-size:9px;padding:1px 6px;border-radius:3px;font-family:"JetBrains Mono",monospace;font-weight:700}
+.t-st.live{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.4)}
+.t-st.final{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
+.t-st.soon{background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)}
+.t-div{color:#a855f7;padding:0 8px;opacity:0.4;font-size:14px}
+@keyframes tickerAnim{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.app{margin-top:36px}
+</style>
+<div class="ticker-wrap"><div class="ticker-label"><span></span>LIVE SCORES</div><div class="ticker-track" id="tktrack"></div></div>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">N</div>
+    <div><div class="logo-text">NexusArena</div><div class="logo-sub">Esports Platform</div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="nav('home',this)">🏠 &nbsp;Home</div>
+    <div class="nav-item" onclick="nav('dashboard',this)">📊 &nbsp;Dashboard</div>
+    <div class="nav-section">Competitive</div>
+    <div class="nav-item" onclick="nav('tournaments',this)">🏆 &nbsp;Tournaments <span class="nav-badge">VCT</span></div>
+    <div class="nav-item" onclick="nav('leaderboard',this)">📈 &nbsp;Leaderboard</div>
+    <div class="nav-item" onclick="nav('players',this)">👤 &nbsp;Players</div>
+    <div class="nav-section">Engineering</div>
+    <div class="nav-item" onclick="nav('pipeline',this)">🔄 &nbsp;Data Pipeline</div>
+    <div class="nav-item" onclick="nav('admin',this)">⚙️ &nbsp;Admin Panel</div>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>API: <span id="api-status-text">checking...</span><br>
+    <span style="color:var(--text3);font-size:9px">localhost:8000</span>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Home</div>
+    <div class="api-status offline" id="api-indicator">⬤ &nbsp;API Offline</div>
+    <button class="topbar-btn" onclick="nav('admin',document.querySelectorAll('.nav-item')[7])">+ Add Data</button>
+  </div>
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <div class="hero-bg"></div><div class="hero-grid"></div>
+        <div style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--cyan);font-family:var(--font-mono);margin-bottom:20px;animation:fadeUp 0.8s 0.1s both">⚡ Data Engineering Capstone Project</div>
+        <h1 class="hero-title"><span class="t1">Compete.</span><span class="t2">Dominate.</span><span class="t3">Rise.</span></h1>
+        <p class="hero-sub">Real-time esports analytics platform powered by ETL pipeline, PostgreSQL, and FastAPI. Live VCT Champions 2025 data included.</p>
+        <div class="hero-cta">
+          <button class="btn-primary" onclick="nav('dashboard',document.querySelectorAll('.nav-item')[1])">VIEW DASHBOARD</button>
+          <button class="btn-secondary" onclick="nav('leaderboard',document.querySelectorAll('.nav-item')[4])">LEADERBOARD →</button>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Real-time ETL Pipeline</div><div class="feature-desc">Extract → Transform → Load. Raw CSV logs processed into PostgreSQL automatically.</div></div>
+          <div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">VCT 2025 Live Data</div><div class="feature-desc">Real Champions Paris data — NRG, Fnatic, aspas 80/42 record, brawk MVP stats.</div></div>
+          <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-title">Analytics Dashboard</div><div class="feature-desc">K/D ratios, win rates, match trends — all computed and served via REST API.</div></div>
+          <div class="feature-card"><div class="feature-icon">🗄️</div><div class="feature-title">PostgreSQL Backend</div><div class="feature-desc">5 normalized tables. FastAPI serves 14 endpoints. All data live from your local DB.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+      <div class="section-header"><div class="section-title">Data Dashboard</div><div class="section-line"></div><div class="section-badge">LIVE API</div></div>
+      <div class="stat-grid" id="overview-stats">
+        <div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>&nbsp;Loading from API...</div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Team Win Rates — Live from /analytics/team-stats</div><div style="position:relative;height:220px"><canvas id="teamChart" role="img" aria-label="Team win rates bar chart">Team win rates.</canvas></div></div>
+        <div class="card"><div class="card-title">Player K/D Leaderboard — Live from /leaderboard</div><div style="position:relative;height:220px"><canvas id="kdChart" role="img" aria-label="Player KD ratio chart">KD ratios.</canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top Players by Win Rate — /analytics/player-performance</div>
+        <div id="perf-table"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>&nbsp;Fetching player data...</div></div>
+      </div>
+    </div>
+
+    <!-- TOURNAMENTS -->
+    <div class="page" id="page-tournaments">
+      <div class="section-header"><div class="section-title">Tournaments</div><div class="section-line"></div><div class="section-badge" id="t-count">Loading...</div></div>
+      <div class="filter-bar">
+        <select class="filter-select" id="t-filter" onchange="filterTournaments()"><option value="all">All Status</option><option value="live">Live</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select>
+        <input class="filter-input" id="t-search" placeholder="Search tournament..." oninput="filterTournaments()" style="flex:1;min-width:140px">
+      </div>
+      <div class="t-grid" id="t-grid"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>&nbsp;Loading tournaments...</div></div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="page" id="page-leaderboard">
+      <div class="section-header"><div class="section-title">Global Leaderboard</div><div class="section-line"></div><div class="section-badge">RANKED</div></div>
+      <div class="lb-top3" id="lb-podiums"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>&nbsp;Loading rankings...</div></div>
+      <div class="card">
+        <div class="filter-bar">
+          <select class="filter-select" id="lb-sort" onchange="loadLeaderboard()"><option value="win_rate">Sort: Win Rate</option><option value="kd_ratio">Sort: K/D Ratio</option><option value="total_matches">Sort: Matches</option></select>
+          <input class="filter-input" id="lb-search" placeholder="Search player..." oninput="filterLeaderboard()">
+        </div>
+        <table class="data-table"><thead><tr><th>Rank</th><th>Player / IGN</th><th>Team</th><th>Win Rate</th><th>K/D Ratio</th><th>Matches</th></tr></thead><tbody id="lb-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- PLAYERS -->
+    <div class="page" id="page-players">
+      <div class="section-header"><div class="section-title">Player Profile</div><div class="section-line"></div></div>
+      <div class="filter-bar"><select class="filter-select" id="player-select" onchange="loadPlayerProfile()" style="min-width:220px"><option>Loading players...</option></select></div>
+      <div id="player-content"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>&nbsp;Loading player data...</div></div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="page" id="page-pipeline">
+      <div class="section-header"><div class="section-title">Data Pipeline</div><div class="section-line"></div><div class="section-badge">ETL</div></div>
+      <div class="card">
+        <div class="card-title">Data Flow: Source → ETL → Database → API → Dashboard</div>
+        <div class="pipeline">
+          <div class="pipe-node" onclick="showPipe(this,'Extract raw CSV/JSON match logs from game servers. Fields: match_id, player_id, kills, deaths, assists, win, timestamp.')"><div class="pipe-icon">📁</div><div class="pipe-title">Data Source</div><div class="pipe-desc">CSV logs / JSON feeds</div></div>
+          <div class="pipe-arrow">›</div>
+          <div class="pipe-node" onclick="showPipe(this,'Extract.py reads raw_data.csv. Transform.py cleans nulls, removes duplicates, calculates K/D ratio and win_rate. Load.py upserts into PostgreSQL.')"><div class="pipe-icon">⚙️</div><div class="pipe-title">ETL Pipeline</div><div class="pipe-desc">extract → transform → load</div></div>
+          <div class="pipe-arrow">›</div>
+          <div class="pipe-node" onclick="showPipe(this,'PostgreSQL with 5 normalized tables: teams, players, tournaments, matches, player_stats. Foreign keys enforce referential integrity.')"><div class="pipe-icon">🗄️</div><div class="pipe-title">PostgreSQL</div><div class="pipe-desc">5 normalized tables</div></div>
+          <div class="pipe-arrow">›</div>
+          <div class="pipe-node" onclick="showPipe(this,'FastAPI serves 14 REST endpoints. GET /players, /leaderboard, /analytics/team-stats, /analytics/player-performance and more.')"><div class="pipe-icon">🔌</div><div class="pipe-title">FastAPI</div><div class="pipe-desc">14 REST endpoints</div></div>
+          <div class="pipe-arrow">›</div>
+          <div class="pipe-node" onclick="showPipe(this,'This HTML dashboard fetches live data from localhost:8000 and renders charts, tables, leaderboards and analytics in real-time.')"><div class="pipe-icon">📊</div><div class="pipe-title">Dashboard</div><div class="pipe-desc">This website!</div></div>
+        </div>
+        <div id="pipe-detail" style="display:none;background:var(--bg3);border:1px solid var(--cyan);border-radius:6px;padding:16px;margin-top:8px;font-size:13px;color:var(--text2);line-height:1.6;font-family:var(--font-mono)"></div>
+        <div class="flow-line" style="margin-top:16px"><div class="flow-particle"></div></div>
+        <div class="flow-line"><div class="flow-particle" style="animation-delay:0.7s"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Database Schema</div>
+          <div style="font-family:var(--font-mono);font-size:11px;line-height:1.8;color:var(--text2)">
+            <div style="color:var(--cyan)">teams</div><div style="color:var(--text3);margin-bottom:8px;padding-left:12px">team_id PK | team_name | region</div>
+            <div style="color:var(--cyan)">players</div><div style="color:var(--text3);margin-bottom:8px;padding-left:12px">player_id PK | name | ign | team_id FK | role | win_rate | kd_ratio</div>
+            <div style="color:var(--cyan)">tournaments</div><div style="color:var(--text3);margin-bottom:8px;padding-left:12px">tournament_id PK | name | game | status | prize_pool</div>
+            <div style="color:var(--cyan)">matches</div><div style="color:var(--text3);margin-bottom:8px;padding-left:12px">match_id PK | team1_id FK | team2_id FK | winner_id | map_name</div>
+            <div style="color:var(--cyan)">player_stats</div><div style="color:var(--text3);padding-left:12px">stat_id PK | player_id FK | match_id FK | kills | deaths | assists</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Live API Calls</div>
+          <div id="api-log" style="max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="page" id="page-admin">
+      <div class="section-header"><div class="section-title">Admin Panel</div><div class="section-line"></div><div class="section-badge">CONTROL</div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Add New Player → POST /players</div>
+          <div class="form-group"><div class="form-label">IGN (In-Game Name)</div><input class="form-input" id="a-ign" placeholder="e.g. PhantomX"></div>
+          <div class="form-group"><div class="form-label">Real Name</div><input class="form-input" id="a-name" placeholder="e.g. John Doe"></div>
+          <div class="form-group"><div class="form-label">Team ID</div><input class="form-input" id="a-team" placeholder="e.g. NRG"></div>
+          <div class="form-group"><div class="form-label">Role</div>
+            <select class="form-select" id="a-role"><option>Duelist</option><option>Controller</option><option>Initiator</option><option>Sentinel</option><option>IGL</option></select>
+          </div>
+          <button class="btn-cyan" onclick="addPlayer()">⚡ POST /players — Add Player</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Add New Match → POST /matches</div>
+          <div class="form-group"><div class="form-label">Team 1 ID</div><input class="form-input" id="m-t1" placeholder="e.g. NRG"></div>
+          <div class="form-group"><div class="form-label">Team 2 ID</div><input class="form-input" id="m-t2" placeholder="e.g. FNC"></div>
+          <div class="form-group"><div class="form-label">Winner ID</div><input class="form-input" id="m-winner" placeholder="e.g. NRG"></div>
+          <div class="form-group"><div class="form-label">Map Name</div><input class="form-input" id="m-map" placeholder="e.g. Ascent"></div>
+          <button class="btn-cyan" onclick="addMatch()">⚡ POST /matches — Add Match</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">System Activity Log</div>
+        <div id="admin-log" style="max-height:280px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let allPlayers = [], allTournaments = [], apiLogs = [];
+
+// ── API helpers ────────────────────────────────────────────────
+async function apiFetch(endpoint) {
+  const start = Date.now();
+  try {
+    const res = await fetch(API + endpoint);
+    const data = await res.json();
+    logApi('GET', endpoint, Date.now()-start, 'OK');
+    return data;
+  } catch(e) {
+    logApi('GET', endpoint, Date.now()-start, 'ERROR');
+    return null;
+  }
+}
+
+async function apiPost(endpoint, body) {
+  try {
+    const res = await fetch(API + endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await res.json();
+    logApi('POST', endpoint, 0, res.ok ? 'CREATED' : 'ERROR');
+    return {ok: res.ok, data};
+  } catch(e) {
+    logApi('POST', endpoint, 0, 'ERROR');
+    return {ok:false, data:null};
+  }
+}
+
+function logApi(method, endpoint, ms, status) {
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
+  const color = status==='OK'||status==='CREATED' ? 'var(--green)' : 'var(--red)';
+  const entry = `<div class="log-entry"><span class="log-ts">${ts}</span><span class="log-type log-api">${method}</span><span style="color:var(--cyan);flex:1">${endpoint}</span><span style="color:${color};font-size:10px">${status} ${ms?ms+'ms':''}</span></div>`;
+  const logEl = document.getElementById('api-log');
+  if(logEl) logEl.insertAdjacentHTML('afterbegin', entry);
+  addAdminLog('api', `${method} ${endpoint} → ${status}`);
+}
+
+function addAdminLog(type, msg) {
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
+  const typeClass = type==='insert'?'log-insert':type==='etl'?'log-etl':'log-api';
+  const el = document.getElementById('admin-log');
+  if(el) el.insertAdjacentHTML('afterbegin',`<div class="log-entry"><span class="log-ts">${ts}</span><span class="log-type ${typeClass}">${type.toUpperCase()}</span><span style="color:var(--text2)">${msg}</span></div>`);
+}
+
+// ── API Status Check ───────────────────────────────────────────
+async function checkAPI() {
+  try {
+    const res = await fetch(API + '/health', {signal: AbortSignal.timeout(3000)});
+    if(res.ok) {
+      document.getElementById('api-indicator').className = 'api-status online';
+      document.getElementById('api-indicator').innerHTML = '⬤ &nbsp;API Online';
+      document.getElementById('api-status-text').textContent = 'ONLINE';
+      return true;
+    }
+  } catch(e) {}
+  document.getElementById('api-indicator').className = 'api-status offline';
+  document.getElementById('api-indicator').innerHTML = '⬤ &nbsp;API Offline';
+  document.getElementById('api-status-text').textContent = 'OFFLINE';
+  return false;
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+const pageTitles = {home:'Home',dashboard:'Data Dashboard',tournaments:'Tournaments',leaderboard:'Global Leaderboard',players:'Player Profile',pipeline:'Data Pipeline',admin:'Admin Panel'};
+function nav(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[name];
+  if(name==='dashboard') loadDashboard();
+  if(name==='tournaments') loadTournaments();
+  if(name==='leaderboard') loadLeaderboard();
+  if(name==='players') loadPlayers();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+let dashLoaded = false;
+async function loadDashboard() {
+  if(dashLoaded) return;
+  dashLoaded = true;
+
+  const [overview, teamStats, leaderboard] = await Promise.all([
+    apiFetch('/analytics/overview'),
+    apiFetch('/analytics/team-stats'),
+    apiFetch('/leaderboard?limit=10'),
+  ]);
+
+  // Stat cards
+  const stats = [
+    {label:'Total Players', val: overview?.total_players ?? '—', color:'cyan'},
+    {label:'Total Matches',  val: overview?.total_matches ?? '—', color:'purple'},
+    {label:'Stat Records',   val: overview?.total_stat_records ?? '—', color:'green'},
+    {label:'Prize Pool',     val: '$2.25M', color:'yellow'},
+  ];
+  document.getElementById('overview-stats').innerHTML = stats.map(s=>`
+    <div class="stat-card ${s.color}">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value ${s.color}">${s.val}</div>
+      <div class="stat-change">↑ Live from API</div>
+    </div>`).join('');
+
+  // Team chart
+  if(teamStats && teamStats.length) {
+    const labels = teamStats.slice(0,8).map(t=>t.team_name);
+    const wins   = teamStats.slice(0,8).map(t=>t.wins);
+    const losses = teamStats.slice(0,8).map(t=>t.losses);
+    new Chart(document.getElementById('teamChart'),{type:'bar',data:{labels,datasets:[
+      {label:'Wins',data:wins,backgroundColor:'rgba(0,245,255,0.6)',borderWidth:0},
+      {label:'Losses',data:losses,backgroundColor:'rgba(168,85,247,0.5)',borderWidth:0},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}},scales:{x:{ticks:{color:'#475569'},grid:{display:false}},y:{ticks:{color:'#475569'},grid:{color:'rgba(0,245,255,0.05)'}}}}});
+  }
+
+  // KD Chart
+  if(leaderboard && leaderboard.length) {
+    const top8 = leaderboard.slice(0,8);
+    new Chart(document.getElementById('kdChart'),{type:'bar',data:{
+      labels:top8.map(p=>p.ign),
+      datasets:[{label:'K/D Ratio',data:top8.map(p=>p.kd_ratio),backgroundColor:top8.map((_,i)=>i===0?'rgba(0,245,255,0.8)':i===1?'rgba(168,85,247,0.7)':'rgba(59,130,246,0.5)'),borderWidth:0}]
+    },options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#475569'},grid:{color:'rgba(0,245,255,0.05)'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+
+    // Perf table
+    document.getElementById('perf-table').innerHTML = `<table class="data-table">
+      <thead><tr><th>#</th><th>Player</th><th>Team</th><th>Win Rate</th><th>K/D</th><th>Matches</th></tr></thead>
+      <tbody>${leaderboard.slice(0,10).map((p,i)=>{
+        const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+        return `<tr><td class="${rc}">#${p.rank}</td><td><strong style="color:var(--text)">${p.ign}</strong><br><span style="font-size:10px;color:var(--text3)">${p.name}</span></td><td>${p.team_id}</td><td style="color:var(--cyan)">${p.win_rate}%</td><td style="color:var(--purple)">${p.kd_ratio}</td><td style="font-family:var(--font-mono)">${p.total_matches}</td></tr>`;
+      }).join('')}</tbody></table>`;
+  }
+}
+
+// ── TOURNAMENTS ────────────────────────────────────────────────
+async function loadTournaments() {
+  if(allTournaments.length) {filterTournaments();return;}
+  const data = await apiFetch('/tournaments');
+  if(!data){document.getElementById('t-grid').innerHTML='<div class="error-msg">❌ Could not load tournaments. Make sure python main.py is running.</div>';return;}
+  allTournaments = data;
+  document.getElementById('t-count').textContent = data.length + ' TOTAL';
+  filterTournaments();
+}
+
+function filterTournaments() {
+  const status = document.getElementById('t-filter').value;
+  const search = document.getElementById('t-search').value.toLowerCase();
+  const filtered = allTournaments.filter(t=>{
+    if(status!=='all' && t.status!==status) return false;
+    if(search && !t.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const colors = {live:'var(--red)',upcoming:'var(--blue)',completed:'var(--green)'};
+  document.getElementById('t-grid').innerHTML = filtered.map(t=>`
+    <div class="t-card">
+      <div class="t-card-banner"><span style="font-size:28px">🏆</span>&nbsp;&nbsp;<span class="badge badge-${t.status}" style="margin-left:auto">${t.status.toUpperCase()}</span></div>
+      <div class="t-card-body">
+        <div class="t-card-name">${t.name}</div>
+        <div class="t-card-meta">${t.game} · ${t.start_date||'TBD'}</div>
+        <div class="t-card-stats">
+          <div><div class="t-stat-val">$${(t.prize_pool/1000).toFixed(0)}K</div><div class="t-stat-lbl">Prize</div></div>
+          <div><div class="t-stat-val" style="color:var(--purple)">${t.max_teams}</div><div class="t-stat-lbl">Teams</div></div>
+          <div><div class="t-stat-val" style="color:var(--green)">${t.status==='completed'?'✓':'●'}</div><div class="t-stat-lbl">Status</div></div>
+        </div>
+      </div>
+    </div>`).join('') || '<div style="color:var(--text3);font-family:var(--font-mono);font-size:13px;padding:24px">No tournaments match filters.</div>';
+}
+
+// ── LEADERBOARD ────────────────────────────────────────────────
+let lbData = [];
+async function loadLeaderboard() {
+  const sort = document.getElementById('lb-sort').value;
+  const data = await apiFetch(`/leaderboard?sort_by=${sort}&limit=30`);
+  if(!data){document.getElementById('lb-body').innerHTML='<tr><td colspan="6" class="error-msg">API offline</td></tr>';return;}
+  lbData = data;
+  // Podiums
+  const colors = ['linear-gradient(135deg,#f59e0b,#b45309)','linear-gradient(135deg,#94a3b8,#475569)','linear-gradient(135deg,#cd7f32,#7c4b1a)'];
+  document.getElementById('lb-podiums').innerHTML = data.slice(0,3).map((p,i)=>`
+    <div class="lb-podium ${['first','second','third'][i]}">
+      <div style="font-size:20px">${['👑','🥈','🥉'][i]}</div>
+      <div class="lb-avatar" style="background:${colors[i]}">${p.ign.charAt(0)}</div>
+      <div class="lb-pname">${p.ign}</div>
+      <div class="lb-team">${p.team_id}</div>
+      <div style="display:flex;justify-content:space-around;font-size:11px;font-family:var(--font-mono)">
+        <div><div style="font-weight:700;color:var(--cyan)">${p.win_rate}%</div><div style="font-size:9px;color:var(--text3)">WR</div></div>
+        <div><div style="font-weight:700;color:var(--purple)">${p.kd_ratio}</div><div style="font-size:9px;color:var(--text3)">K/D</div></div>
+        <div><div style="font-weight:700;color:var(--text2)">${p.total_matches}</div><div style="font-size:9px;color:var(--text3)">Matches</div></div>
+      </div>
+    </div>`).join('');
+  filterLeaderboard();
+}
+
+function filterLeaderboard() {
+  const search = document.getElementById('lb-search').value.toLowerCase();
+  const filtered = lbData.filter(p=>!search || p.ign.toLowerCase().includes(search) || (p.name||'').toLowerCase().includes(search));
+  const rankClass = p => p.rank===1?'rank-1':p.rank===2?'rank-2':p.rank===3?'rank-3':'rank-n';
+  document.getElementById('lb-body').innerHTML = filtered.map(p=>`
+    <tr>
+      <td class="${rankClass(p)}">#${p.rank}</td>
+      <td><strong style="color:var(--text)">${p.ign}</strong><br><span style="font-size:10px;color:var(--text3)">${p.name||''}</span></td>
+      <td>${p.team_id}</td>
+      <td style="color:var(--cyan)">${p.win_rate}%</td>
+      <td style="color:var(--purple)">${p.kd_ratio}</td>
+      <td style="font-family:var(--font-mono)">${p.total_matches}</td>
+    </tr>`).join('');
+}
+
+// ── PLAYERS ────────────────────────────────────────────────────
+async function loadPlayers() {
+  if(allPlayers.length) return;
+  const data = await apiFetch('/players');
+  if(!data) return;
+  allPlayers = data;
+  const sel = document.getElementById('player-select');
+  sel.innerHTML = data.map(p=>`<option value="${p.player_id}">${p.ign} — ${p.team_id}</option>`).join('');
+  loadPlayerProfile();
+}
+
+let playerCharts = {};
+async function loadPlayerProfile() {
+  const pid = document.getElementById('player-select').value;
+  const p = allPlayers.find(x=>x.player_id===pid);
+  if(!p) return;
+  document.getElementById('player-content').innerHTML = `
+    <div class="profile-header">
+      <div class="avatar">${p.ign.charAt(0)}</div>
+      <div style="flex:1">
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:700">${p.ign}</div>
+        <div style="font-size:12px;color:var(--cyan);font-family:var(--font-mono);margin-bottom:8px">${p.player_id} · ${p.name||''}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-upcoming">${p.team_id}</span>
+          <span class="badge badge-completed">${p.role||'Player'}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;text-align:center">
+        <div><div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--cyan)">${p.total_matches}</div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">MATCHES</div></div>
+        <div><div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--purple)">${p.kd_ratio}</div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">K/D</div></div>
+        <div><div style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--green)">${p.win_rate}%</div><div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">WIN RATE</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">K/D Performance Trend (Simulated Weekly)</div>
+      <div style="position:relative;height:180px"><canvas id="playerChart" role="img" aria-label="Player KD trend">KD trend.</canvas></div>
+    </div>`;
+  setTimeout(()=>{
+    if(!playerCharts[pid]) {
+      playerCharts[pid] = true;
+      const base = Math.max(p.kd_ratio - 0.5, 0.5);
+      const tdata = Array.from({length:8},(_,i)=>parseFloat((base+Math.random()*0.8).toFixed(2)));
+      tdata[7] = p.kd_ratio;
+      new Chart(document.getElementById('playerChart'),{type:'line',data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'],datasets:[{label:'K/D',data:tdata,borderColor:'#00f5ff',backgroundColor:'rgba(0,245,255,0.1)',fill:true,borderWidth:2,tension:0.4,pointRadius:4,pointBackgroundColor:'#00f5ff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#475569'},grid:{display:false}},y:{ticks:{color:'#475569'},grid:{color:'rgba(0,245,255,0.05)'}}}}});
+    }
+  },100);
+}
+
+// ── PIPELINE ────────────────────────────────────────────────────
+function showPipe(el, text) {
+  document.querySelectorAll('.pipe-node').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  const d = document.getElementById('pipe-detail');
+  d.style.display='block';
+  d.textContent = text;
+}
+
+// ── ADMIN ────────────────────────────────────────────────────
+async function addPlayer() {
+  const ign  = document.getElementById('a-ign').value;
+  const name = document.getElementById('a-name').value;
+  const team = document.getElementById('a-team').value;
+  const role = document.getElementById('a-role').value;
+  if(!ign||!team){alert('IGN and Team ID are required!');return;}
+  const result = await apiPost('/players', {name:name||ign, ign, team_id:team, role});
+  if(result.ok) {
+    addAdminLog('insert', `Player "${ign}" added → player_id: ${result.data.player_id}`);
+    alert(`✅ Player "${ign}" added successfully!\nplayer_id: ${result.data.player_id}`);
+    allPlayers = [];
+  } else {
+    alert('❌ Error: ' + JSON.stringify(result.data));
+  }
+}
+
+async function addMatch() {
+  const t1     = document.getElementById('m-t1').value;
+  const t2     = document.getElementById('m-t2').value;
+  const winner = document.getElementById('m-winner').value;
+  const map    = document.getElementById('m-map').value;
+  if(!t1||!t2){alert('Team IDs are required!');return;}
+  const result = await apiPost('/matches', {team1_id:t1, team2_id:t2, winner_id:winner, map_name:map, duration_minutes:35});
+  if(result.ok) {
+    addAdminLog('insert', `Match added: ${t1} vs ${t2}, winner: ${winner}, match_id: ${result.data.match_id}`);
+    alert(`✅ Match added!\nmatch_id: ${result.data.match_id}`);
+  } else {
+    alert('❌ Error: ' + JSON.stringify(result.data));
+  }
+}
+
+// ── INIT ────────────────────────────────────────────────────
+checkAPI();
+setInterval(checkAPI, 10000);
+addAdminLog('api', 'NexusArena frontend loaded');
+addAdminLog('api', 'Connecting to localhost:8000...');
+</script>
+</body>
+</html>
+
+<script>
+// ── LIVE SCORE TICKER ─────────────────────────────────────────
+const TICKER_DATA = [
+  // VCT Champions 2025 Paris
+  {t1:'NRG',       t2:'Fnatic',    s1:13,s2:8,  map:'Corrode',  st:'final', tour:'VCT Champions 2025'},
+  {t1:'Paper Rex', t2:'G2 Esports',s1:2, s2:1,  map:'Bind',     st:'live',  tour:'VCT Champions 2025'},
+  {t1:'MIBR',      t2:'DRX',       s1:9, s2:11, map:'Ascent',   st:'live',  tour:'VCT Champions 2025'},
+  {t1:'Fnatic',    t2:'DRX',       s1:13,s2:4,  map:'Sunset',   st:'final', tour:'VCT Champions 2025'},
+  {t1:'NRG',       t2:'PRX',       s1:13,s2:7,  map:'Lotus',    st:'final', tour:'VCT Champions 2025'},
+  {t1:'Sentinels', t2:'T1',        s1:0, s2:0,  map:'TBD',      st:'soon',  tour:'VCT Pacific Stage 2'},
+  {t1:'Heretics',  t2:'Liquid',    s1:13,s2:11, map:'Haven',    st:'final', tour:'VCT Champions 2025'},
+  // CS2 Budapest Major 2025
+  {t1:'Vitality',  t2:'FaZe',      s1:16,s2:12, map:'Anubis',   st:'live',  tour:'Budapest Major 2025'},
+  {t1:'Spirit',    t2:'MOUZ',      s1:16,s2:10, map:'Inferno',  st:'final', tour:'Budapest Major 2025'},
+  {t1:'NaVi',      t2:'G2',        s1:8, s2:16, map:'Mirage',   st:'final', tour:'Budapest Major 2025'},
+  {t1:'MongolZ',   t2:'FURIA',     s1:0, s2:0,  map:'TBD',      st:'soon',  tour:'Austin Major 2025'},
+  {t1:'Vitality',  t2:'Spirit',    s1:16,s2:14, map:'Nuke',     st:'final', tour:'Austin Major 2025'},
+  {t1:'FaZe',      t2:'MOUZ',      s1:12,s2:16, map:'Ancient',  st:'final', tour:'Budapest Major 2025'},
+  {t1:'Falcons',   t2:'NaVi',      s1:0, s2:0,  map:'TBD',      st:'soon',  tour:'BLAST Rivals 2025'},
+];
+
+function renderTicker() {
+  const track = document.getElementById('tktrack');
+  if(!track) return;
+  const doubled = [...TICKER_DATA, ...TICKER_DATA];
+  track.innerHTML = doubled.map((m,i) => {
+    const scoreHtml = m.st==='soon'
+      ? `<span class="t-score" style="color:#3b82f6;font-size:11px">VS</span>`
+      : `<span class="t-score ${m.st==='live'?'tlive':''}">${m.s1}–${m.s2}</span>`;
+    const stLabel = m.st==='live' ? '● LIVE' : m.st==='soon' ? '⏰ SOON' : '✓ FINAL';
+    return `<div class="ticker-item">
+      <span class="t-st ${m.st}">${stLabel}</span>
+      <span class="t-teams">${m.t1}</span>
+      ${scoreHtml}
+      <span class="t-teams">${m.t2}</span>
+      <span class="t-map">${m.map}</span>
+      <span style="font-size:9px;color:#475569;font-family:'JetBrains Mono',monospace">${m.tour}</span>
+    </div>${i < doubled.length-1 ? '<span class="t-div">◆</span>' : ''}`;
+  }).join('');
+}
+
+// Simulate live score updates every 6 seconds
+function liveUpdates() {
+  const live = TICKER_DATA.filter(m => m.st === 'live');
+  setInterval(() => {
+    live.forEach(m => {
+      if(Math.random() > 0.4) {
+        if(Math.random() > 0.5) m.s1++;
+        else m.s2++;
+        if(m.s1 >= 13 || m.s2 >= 13) m.st = 'final';
+      }
+    });
+    renderTicker();
+  }, 6000);
+}
+
+renderTicker();
+liveUpdates();
+</script>
